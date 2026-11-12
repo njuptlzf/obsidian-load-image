@@ -1,4 +1,5 @@
 import type { LinkStyle } from "./paths";
+import type { LanguageSetting } from "./i18n";
 
 export interface LoadImageSettings {
   /** Folder for pasted images. Empty = next to the note. */
@@ -13,6 +14,10 @@ export interface LoadImageSettings {
   fileNameTemplate: string;
   /** Show a short notice after an image was saved. */
   showNotice: boolean;
+  /**
+   * UI language. "auto" follows Obsidian's app language (getLanguage()).
+   */
+  language: LanguageSetting;
 }
 
 export const DEFAULT_SETTINGS: LoadImageSettings = {
@@ -20,6 +25,7 @@ export const DEFAULT_SETTINGS: LoadImageSettings = {
   linkStyle: "markdown",
   fileNameTemplate: "",
   showNotice: false,
+  language: "auto",
 };
 
 const MAX_FOLDER_LENGTH = 200;
@@ -51,7 +57,12 @@ export function normalizeSettings(input: unknown): LoadImageSettings {
 
   const showNotice = raw.showNotice === true;
 
-  return { imageFolder, linkStyle, fileNameTemplate, showNotice };
+  const language: LanguageSetting =
+    raw.language === "en" || raw.language === "zh" || raw.language === "auto"
+      ? raw.language
+      : "auto";
+
+  return { imageFolder, linkStyle, fileNameTemplate, showNotice, language };
 }
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "@njuptlzf/obsidian-load-image",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Obsidian plugin: paste images into a configurable folder (note-relative, relative path, or vault-absolute) with automatic folder creation.",
   "main": "main.js",
   "keywords": [

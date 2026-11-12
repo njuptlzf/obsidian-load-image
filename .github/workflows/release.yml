@@ -21,7 +21,7 @@ jobs:
 
       - run: npm ci
 
-      # typecheck + 63 unit tests + production build + runtime smoke test
+      # typecheck + 68 unit tests + production build + runtime smoke test
       - run: npm run verify
 
       - name: Create GitHub release

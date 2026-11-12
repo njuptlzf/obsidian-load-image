@@ -13,6 +13,7 @@ Obsidian 默认会把粘贴的图片存到附件目录，或者丢到笔记同�
 - **两种链接格式**：Markdown 相对路径 `![](assets/a.png)`，或 Wiki 嵌入 `![[assets/a.png]]`。
 - **图片名模板**：默认留空使用剪贴板原文件名；可用 `{name}` `{timestamp}` `{date}` `{time}` `{note}` 自定义。
 - **不影响其他粘贴**：只有剪贴板里含图片时才接管，文本、文件粘贴保持原生行为。
+- **中英文界面**：设置项「界面语言」可选「跟随应用」（自动跟随 Obsidian 的语言）、English、中文；设置页、提示与命令名随之切换。
 
 ## 目录规则
 
@@ -58,6 +59,7 @@ npm run dev        # 监听模式
 | 插入链接格式 | Markdown | `![](assets/a.png)` 或 `![[assets/a.png]]` |
 | 图片名模板 | 留空 | 留空 = 使用剪贴板原文件名；可填 `{name}` `{timestamp}` `{date}` `{time}` `{note}`，非法字符自动替换为 `-`，重名自动追加 `-1` |
 | 保存后显示提示 | 关闭 | 保存成功后在右上角提示 |
+| 界面语言 | 跟随应用 | 「跟随应用」自动采用 Obsidian 的语言；也可手动选 English / 中文 |
 
 ## 命令
 
@@ -67,7 +69,7 @@ npm run dev        # 监听模式
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm run test        # vitest，63 个单元测试
+npm run test        # vitest，68 个单元测试
 npm run smoke       # 加载真实 main.js，模拟 Ctrl+V 全链路
 npm run verify      # 以上全部 + 生产构建
 ```

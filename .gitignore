@@ -8,3 +8,5 @@ main.js
 .env.*
 !.env.example
 dist/
+.workbuddy/
+.vtmp/

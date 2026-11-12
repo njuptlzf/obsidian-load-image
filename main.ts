@@ -21,6 +21,11 @@ import {
   describeTargetFolder,
   saveImage,
 } from "./src/saver";
+import {
+  t,
+  setLocale,
+  type LanguageSetting,
+} from "./src/i18n";
 
 /**
  * Controller layer: wires Obsidian events to the saver service.
@@ -34,6 +39,7 @@ export default class LoadImagePlugin extends Plugin {
 
   override async onload(): Promise<void> {
     await this.loadSettings();
+    setLocale(this.settings.language);
     this.addSettingTab(new LoadImageSettingTab(this.app, this));
 
     // Only image pastes are intercepted; text / file pastes stay untouched.
@@ -52,11 +58,24 @@ export default class LoadImagePlugin extends Plugin {
 
     this.addCommand({
       id: "paste-image-from-clipboard",
-      name: "从剪贴板粘贴图片",
+      name: t("cmd.paste.name"),
       editorCallback: (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
         void this.pasteFromClipboard(editor, ctx);
       },
     });
+  }
+
+  /** Re-render command palette labels after a language change. */
+  refreshCommandNames(): void {
+    // `app.commands` exists at runtime but is absent from some type defs.
+    const commands = (
+      this.app as unknown as {
+        commands?: { commands?: Record<string, { name: string }> };
+      }
+    ).commands;
+    const command =
+      commands?.commands?.["load-image:paste-image-from-clipboard"];
+    if (command) command.name = t("cmd.paste.name");
   }
 
   override onunload(): void {
@@ -107,13 +126,13 @@ export default class LoadImagePlugin extends Plugin {
       }
 
       if (files.length === 0) {
-        new Notice("剪贴板中没有图片");
+        new Notice(t("notice.clipboardEmpty"));
         return;
       }
       await this.handlePaste(files, editor, ctx);
     } catch (error) {
       console.error("[load-image] clipboard read failed", error);
-      new Notice("无法读取剪贴板，请使用 Ctrl/Cmd+V 直接粘贴");
+      new Notice(t("notice.clipboardReadFailed"));
     }
   }
 
@@ -124,7 +143,7 @@ export default class LoadImagePlugin extends Plugin {
   ): Promise<void> {
     const noteFile = ctx?.file ?? this.app.workspace.getActiveFile();
     if (!noteFile) {
-      new Notice("请先打开一个笔记再粘贴图片");
+      new Notice(t("notice.openNoteFirst"));
       return;
     }
 
@@ -152,7 +171,9 @@ export default class LoadImagePlugin extends Plugin {
 
     if (this.settings.showNotice) {
       new Notice(
-        links.length === 1 ? "图片已保存" : `${links.length} 张图片已保存`
+        links.length === 1
+          ? t("notice.savedOne")
+          : t("notice.savedMany", { count: links.length })
       );
     }
   }
@@ -161,7 +182,7 @@ export default class LoadImagePlugin extends Plugin {
 function formatSaveError(error: unknown): string {
   if (error instanceof PathResolutionError) return error.message;
   const detail = error instanceof Error ? error.message : String(error);
-  return `保存图片失败：${detail}`;
+  return `${t("error.savePrefix")}${detail}`;
 }
 
 /** Collect image files from a paste event, in a stable order. */
@@ -194,10 +215,29 @@ class LoadImageSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.addClass("load-image-settings");
 
-    containerEl.createEl("h2", { text: "Load Image 设置" });
+    containerEl.createEl("h2", { text: t("settings.heading") });
+
+    // Language
+    new Setting(containerEl)
+      .setName(t("settings.language.name"))
+      .setDesc(t("settings.language.desc"))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("auto", t("settings.language.auto"))
+          .addOption("en", t("settings.language.en"))
+          .addOption("zh", t("settings.language.zh"))
+          .setValue(this.plugin.settings.language)
+          .onChange(async (value) => {
+            this.plugin.settings.language = value as LanguageSetting;
+            await this.plugin.saveSettings();
+            setLocale(this.plugin.settings.language);
+            this.plugin.refreshCommandNames();
+            this.display();
+          })
+      );
 
     const folderSetting = new Setting(containerEl)
-      .setName("粘贴图片的存放目录")
+      .setName(t("settings.folder.name"))
       .addText((text) => {
         text
           .setPlaceholder("./assets")
@@ -212,7 +252,7 @@ class LoadImageSettingTab extends PluginSettingTab {
       .addExtraButton((button) => {
         button
           .setIcon("rotate-ccw")
-          .setTooltip("恢复默认值 ./assets")
+          .setTooltip(t("settings.folder.reset"))
           .onClick(async () => {
             this.plugin.settings.imageFolder = DEFAULT_SETTINGS.imageFolder;
             await this.plugin.saveSettings();
@@ -223,23 +263,23 @@ class LoadImageSettingTab extends PluginSettingTab {
     // 三种写法分条描述，避免挤在一行看不清。
     const folderDesc = folderSetting.descEl;
     folderDesc.empty();
-    folderDesc.createEl("div", { text: "1. 留空 —— 保存到当前 Markdown 笔记的同级目录" });
-    folderDesc.createEl("div", { text: "2. 相对路径（以 ./ 或 ../ 开头）—— 以当前笔记所在目录为基准" });
-    folderDesc.createEl("div", { text: "3. 绝对路径（如 /assets、assets/images）—— 以 Obsidian 仓库根目录为基准" });
+    folderDesc.createEl("div", { text: t("settings.folder.rule1") });
+    folderDesc.createEl("div", { text: t("settings.folder.rule2") });
+    folderDesc.createEl("div", { text: t("settings.folder.rule3") });
     folderDesc.createEl("div", {
       cls: "load-image-desc-note",
-      text: "目录不存在时自动创建。",
+      text: t("settings.folder.note"),
     });
 
     this.previewEl = containerEl.createDiv({ cls: "load-image-preview" });
 
     new Setting(containerEl)
-      .setName("插入链接格式")
-      .setDesc("Markdown 相对路径兼容性最好；Wiki 嵌入使用仓库内完整路径。")
+      .setName(t("settings.link.name"))
+      .setDesc(t("settings.link.desc"))
       .addDropdown((dropdown) => {
         dropdown
-          .addOption("markdown", "Markdown：![](assets/a.png)")
-          .addOption("wiki", "Wiki：![[assets/a.png]]")
+          .addOption("markdown", t("settings.link.markdown"))
+          .addOption("wiki", t("settings.link.wiki"))
           .setValue(this.plugin.settings.linkStyle)
           .onChange(async (value) => {
             this.plugin.settings.linkStyle =
@@ -249,14 +289,11 @@ class LoadImageSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("图片名模板")
-      .setDesc(
-        "留空：使用剪贴板中的原文件名。可用占位符：{name} 原文件名、{timestamp} 时间戳、" +
-          "{date} 日期、{time} 时间、{note} 笔记名。重名时自动追加 -1、-2。"
-      )
+      .setName(t("settings.nameTemplate.name"))
+      .setDesc(t("settings.nameTemplate.desc"))
       .addText((text) =>
         text
-          .setPlaceholder("留空 = 使用原文件名")
+          .setPlaceholder(t("settings.nameTemplate.placeholder"))
           .setValue(this.plugin.settings.fileNameTemplate)
           .onChange(async (value) => {
             this.plugin.settings.fileNameTemplate = value;
@@ -265,8 +302,8 @@ class LoadImageSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("保存后显示提示")
-      .setDesc("在右上角弹出“图片已保存”的通知。")
+      .setName(t("settings.notice.name"))
+      .setDesc(t("settings.notice.desc"))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.showNotice)
@@ -297,20 +334,20 @@ class LoadImageSettingTab extends PluginSettingTab {
         cls: "load-image-preview-label",
         text:
           base === "note"
-            ? `以笔记 "${exampleNote}" 为例，图片将保存到：`
-            : "图片将保存到（仓库根目录起算）：",
+            ? t("preview.noteBase", { note: exampleNote })
+            : t("preview.vaultBase"),
       });
       this.previewEl.createEl("code", { text: display });
       if (base === "note") {
         this.previewEl.createEl("div", {
           cls: "load-image-preview-hint",
-          text: "实际落点随当前笔记所在位置变化。",
+          text: t("preview.noteHint"),
         });
       }
     } catch (error) {
       this.previewEl.createEl("div", {
         cls: "load-image-preview-error",
-        text: error instanceof Error ? error.message : "路径无效",
+        text: error instanceof Error ? error.message : t("preview.invalid"),
       });
     }
   }

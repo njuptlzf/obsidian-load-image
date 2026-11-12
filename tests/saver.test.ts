@@ -100,7 +100,9 @@ describe("ensureFolder", () => {
   it("refuses to shadow an existing file", async () => {
     const vault = new FakeVault();
     vault.seedFile("a");
-    await expect(ensureFolder(vault, "a/b")).rejects.toThrow(/同名文件占用/);
+    await expect(ensureFolder(vault, "a/b")).rejects.toThrow(
+      /is occupied by a file with the same name/
+    );
   });
 
   it("propagates a real creation failure", async () => {
@@ -306,6 +308,6 @@ describe("saveImage — failure handling", () => {
         notePath: "n.md",
         settings: settings({ imageFolder: "../../outside" }),
       })
-    ).rejects.toThrow(/超出了 Obsidian 仓库根目录的范围/);
+    ).rejects.toThrow(/goes outside the Obsidian vault root/);
   });
 });

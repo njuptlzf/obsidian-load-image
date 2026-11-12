@@ -1,11 +1,14 @@
 /**
  * Pure path / link helpers.
  *
- * Deliberately free of any `obsidian` import so the trickiest logic
- * (folder resolution + link generation) can be unit-tested in Node.
+ * Deliberately free of any top-level `obsidian` import so the trickiest logic
+ * (folder resolution + link generation) can be unit-tested in Node. The i18n
+ * `t()` used for error messages is also obsidian-free at module load.
  * All paths handled here are normalized, vault-relative, POSIX-style
  * (forward slashes, no leading slash, "" === vault root).
  */
+
+import { t } from "./i18n";
 
 export type LinkStyle = "markdown" | "wiki";
 
@@ -41,7 +44,7 @@ export function normalizeVaultPath(input: string): string {
     if (part === "..") {
       if (stack.length === 0) {
         throw new PathResolutionError(
-          `路径 "${input}" 超出了 Obsidian 仓库根目录的范围`
+          t("error.pathOutOfRange", { input })
         );
       }
       stack.pop();

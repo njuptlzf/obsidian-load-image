@@ -16,6 +16,7 @@ import {
   resolveImageFolder,
 } from "./paths";
 import { LoadImageSettings, expandFileNameTemplate } from "./settings";
+import { t } from "./i18n";
 
 /** The subset of `obsidian.Vault` this service needs. */
 export interface VaultPort {
@@ -66,7 +67,7 @@ export async function ensureFolder(vault: VaultPort, folder: string): Promise<vo
 
     if (existing) {
       if (vault.isFolder(existing)) continue;
-      throw new Error(`路径 "${current}" 已被同名文件占用，无法创建目录`);
+      throw new Error(t("error.folderOccupied", { path: current }));
     }
 
     try {
@@ -156,6 +157,6 @@ export function describeTargetFolder(
   return {
     folder,
     base,
-    display: folder === "" ? "（仓库根目录）" : joinVaultPath(folder),
+    display: folder === "" ? t("preview.vaultRoot") : joinVaultPath(folder),
   };
 }
