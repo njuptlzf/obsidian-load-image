@@ -1,7 +1,7 @@
 {
   "id": "load-image",
   "name": "Load Image",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "minAppVersion": "1.4.0",
   "description": "Paste an image into a configurable folder: next to the note, a relative directory, or an absolute path from the vault root. Missing folders are created automatically.",
   "author": "njuptlzf",
