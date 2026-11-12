@@ -15,6 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Obsidian matches the release tag against manifest.json's version
+      # exactly, so a "v" prefix makes the submission fail with
+      # "no GitHub release with that version has been published yet".
+      - name: Verify tag matches manifest version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "tag=$TAG manifest=$VERSION"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Tag '$TAG' must equal manifest.json version '$VERSION' (no 'v' prefix)."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
