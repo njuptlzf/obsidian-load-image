@@ -103,6 +103,16 @@ Code layout:
 - `src/settings.ts` — settings contract and defensive normalization.
 - `src/i18n.ts` — en/zh dictionaries, `t()`, locale detection.
 
+## Releasing
+
+Bump the version in `manifest.json`, `versions.json` and `package.json`, then push a tag that is **exactly** the version:
+
+```bash
+git tag 1.1.2 && git push origin 1.1.2
+```
+
+No `v` prefix. Obsidian matches the release tag against `manifest.json` literally, so `v1.1.2` is reported as *"no GitHub release with that version has been published yet"*. The release workflow builds the plugin, attaches `main.js` / `manifest.json` / `styles.css` / `versions.json`, and fails early when the tag and the manifest version diverge.
+
 ## License
 
 MIT

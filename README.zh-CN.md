@@ -101,6 +101,16 @@ npm run verify      # 以上全部 + 生产构建
 - `src/settings.ts` —— 设置契约与容错校验。
 - `src/i18n.ts` —— 中英文字典、`t()`、语言检测。
 
+## 发版
+
+先同步 `manifest.json`、`versions.json`、`package.json` 里的版本号，再推一个**与版本号完全一致**的 tag：
+
+```bash
+git tag 1.1.2 && git push origin 1.1.2
+```
+
+不要带 `v` 前缀。Obsidian 是拿 release tag 与 `manifest.json` 里的版本号做字面匹配的，写成 `v1.1.2` 会被判定为「没有发布该版本的 release」。CI 会自动构建并挂上 `main.js` / `manifest.json` / `styles.css` / `versions.json`；若 tag 与版本号不一致，流程会直接失败。
+
 ## License
 
 MIT
