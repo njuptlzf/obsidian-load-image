@@ -73,18 +73,16 @@ export default class LoadImagePlugin extends Plugin {
   /**
    * The Obsidian UI language, used when the plugin language follows the app.
    *
-   * `getLanguage()` exists since Obsidian 1.8.7; on older versions the
-   * browser locale is used instead.
+   * `getLanguage()` needs Obsidian 1.8.7, which is this plugin's minimum
+   * version; on an unexpected failure the browser locale is used instead.
    */
   getAppLanguage(): string {
     try {
-      if (typeof getLanguage === "function") {
-        return getLanguage();
-      }
+      return getLanguage();
     } catch {
       // The API is not available on this Obsidian version.
+      return "";
     }
-    return "";
   }
 
   /** Re-render command palette labels after a language change. */
