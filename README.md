@@ -1,85 +1,107 @@
 # Load Image
 
-一个 Obsidian 插件：**控制 Ctrl/Cmd+V 粘贴图片时的存放位置**。
+**English** | [简体中文](README.zh-CN.md)
 
-Obsidian 默认会把粘贴的图片存到附件目录，或者丢到笔记同级目录，无法按目录分别管理。本插件让粘贴图片的落点完全可控——把图片存到笔记旁边的 `assets`，或统一的 `assets/images`，或任意仓库内路径，文件夹不存在时自动创建。
+[![GitHub release](https://img.shields.io/github/v/release/njuptlzf/obsidian-load-image)](https://github.com/njuptlzf/obsidian-load-image/releases)
+[![License](https://img.shields.io/github/license/njuptlzf/obsidian-load-image)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@njuptlzf/obsidian-load-image)](https://www.npmjs.com/package/@njuptlzf/obsidian-load-image)
 
-## 功能
+Paste an image with `Ctrl/Cmd+V` and decide **exactly where it lands** — next to the note, in a `./assets` folder beside it, or in a shared `/assets/images` folder at the vault root. Missing folders are created for you, and existing files are never overwritten.
 
-- **可配置的粘贴目录**：留空 = 笔记同级；`./`、`../` = 相对笔记；其他 = 相对仓库根目录。
-- **自动创建目录**：多级目录逐级补齐，无需手动建文件夹。
-- **不覆盖已有文件**：同名时自动追加 `-1`、`-2`。
-- **一次粘贴多张**：批量保存并在光标处逐行插入。
-- **两种链接格式**：Markdown 相对路径 `![](assets/a.png)`，或 Wiki 嵌入 `![[assets/a.png]]`。
-- **图片名模板**：默认留空使用剪贴板原文件名；可用 `{name}` `{timestamp}` `{date}` `{time}` `{note}` 自定义。
-- **不影响其他粘贴**：只有剪贴板里含图片时才接管，文本、文件粘贴保持原生行为。
-- **中英文界面**：设置项「界面语言」可选「跟随应用」（自动跟随 Obsidian 的语言）、English、中文；设置页、提示与命令名随之切换。
+![Load Image settings](https://raw.githubusercontent.com/njuptlzf/obsidian-load-image/main/docs/settings.png)
 
-## 目录规则
+## Why
 
-设置项「粘贴图片的存放目录」的取值语义：
+Obsidian's default is all-or-nothing: either everything goes into one global attachment folder, or images land next to the note. If you organize notes in folders, you usually want something in between — screenshots in a per-folder `assets`, diagrams in a shared `assets/images`, and so on.
 
-| 设置值 | 实际保存位置（示例笔记 `notes/daily/2026-11-12.md`） |
+Load Image takes over the paste **only when the clipboard actually contains an image**, so text and file pasting keep their native behavior.
+
+## Features
+
+- **Configurable destination** — empty = next to the note, `./` or `../` = relative to the note, anything else = relative to the vault root.
+- **Folders are created automatically** — missing parent folders are added level by level.
+- **Never overwrites** — a colliding name gets a `-1`, `-2` suffix instead.
+- **Paste several images at once** — all are saved and inserted on separate lines.
+- **Two link styles** — Markdown `![](assets/a.png)` or Wiki embed `![[assets/a.png]]`.
+- **Image name template** — empty keeps the original clipboard name; supports `{name}`, `{timestamp}`, `{date}`, `{time}`, `{note}`.
+- **Bilingual UI** — the *Language* setting offers *Follow app* (uses Obsidian's own language), English and 中文. Settings, notices and the command name all follow it.
+
+## Folder rules
+
+How the *Image folder for pasted images* value is interpreted, for an example note at `notes/daily/2026-11-12.md`:
+
+| Setting value | Where the image is saved |
 | --- | --- |
-| 留空 | `notes/daily/`（笔记同级） |
-| `./assets`（默认） | `notes/daily/assets/` |
+| *(empty)* | `notes/daily/` (next to the note) |
+| `./assets` (default) | `notes/daily/assets/` |
 | `../assets` | `notes/assets/` |
 | `./img/pasted` | `notes/daily/img/pasted/` |
-| `/assets` | `assets/`（仓库根目录） |
-| `assets/images` | `assets/images/`（仓库根目录） |
+| `/assets` | `assets/` (vault root) |
+| `assets/images` | `assets/images/` (vault root) |
 
-规则说明：
+Rules behind it:
 
-- 以 `./` 或 `../` 开头 → 相对**当前笔记所在目录**解析。
-- 以 `/` 开头或不带前缀 → 相对**Obsidian 仓库根目录**解析。
-- 因此想放在笔记同级某目录下，必须写 `./xxx`；直接写 `xxx` 会落在仓库根目录。这样两种模式不会混淆。
-- 路径不能越过仓库根目录（如从根目录写 `../x` 会报错）。
+- A value starting with `./` or `../` is resolved **relative to the note's folder**.
+- A value starting with `/`, or with no prefix at all, is resolved **relative to the Obsidian vault root**.
+- So a folder beside the note must be written `./xxx`; plain `xxx` goes to the vault root. Keeping the two forms distinct means no ambiguity.
+- Paths cannot escape the vault root (e.g. `../x` from the root raises an error).
+- The settings page previews the resolved location live, using the fixed example note `a/b/c.md` so the preview stays short.
 
-## 安装
+## Install
 
-### 手动安装
+### Manual
 
-1. 下载 `main.js`、`manifest.json`、`styles.css`。
-2. 放到 `<你的仓库>/.obsidian/plugins/load-image/`。
-3. 在 Obsidian「设置 → 第三方插件」中启用 **Load Image**。
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/njuptlzf/obsidian-load-image/releases/latest).
+2. Put them in `<your vault>/.obsidian/plugins/load-image/`.
+3. Enable **Load Image** under *Settings → Community plugins*.
 
-### 从源码构建
+### From npm
+
+```bash
+cd <your vault>/.obsidian/plugins
+mkdir -p load-image && cd load-image
+npm init -y && npm i @njuptlzf/obsidian-load-image
+cp node_modules/@njuptlzf/obsidian-load-image/{main.js,manifest.json,styles.css} .
+```
+
+### From source
 
 ```bash
 npm install
-npm run build      # 生成 main.js
-npm run dev        # 监听模式
+npm run build      # produces main.js
+npm run dev        # watch mode
 ```
 
-## 设置项
+## Settings
 
-| 设置 | 默认值 | 说明 |
+| Setting | Default | Description |
 | --- | --- | --- |
-| 粘贴图片的存放目录 | `./assets` | 见上方目录规则；设置页下方以固定示例 `a/b/c.md` 实时预览落点 |
-| 插入链接格式 | Markdown | `![](assets/a.png)` 或 `![[assets/a.png]]` |
-| 图片名模板 | 留空 | 留空 = 使用剪贴板原文件名；可填 `{name}` `{timestamp}` `{date}` `{time}` `{note}`，非法字符自动替换为 `-`，重名自动追加 `-1` |
-| 保存后显示提示 | 关闭 | 保存成功后在右上角提示 |
-| 界面语言 | 跟随应用 | 「跟随应用」自动采用 Obsidian 的语言；也可手动选 English / 中文 |
+| Language | Follow app | *Follow app* inherits Obsidian's language; or force English / 中文 |
+| Image folder for pasted images | `./assets` | See [folder rules](#folder-rules); previewed live in settings |
+| Insert link style | Markdown | `![](assets/a.png)` or `![[assets/a.png]]` |
+| Image name template | *(empty)* | Empty = keep the clipboard file name. Supports `{name}` `{timestamp}` `{date}` `{time}` `{note}`; illegal characters become `-`, collisions get `-1` |
+| Show notice after saving | Off | Pop a short "image saved" notice in the top-right corner |
 
-## 命令
+## Commands
 
-- **从剪贴板粘贴图片** —— 供快捷键绑定使用。正常 Ctrl/Cmd+V 已自动生效，此命令用于 `editor-paste` 事件未触发的边缘场景。
+- **Paste image from clipboard** — for binding a hotkey. Plain `Ctrl/Cmd+V` already works; this command covers edge cases where the `editor-paste` event does not fire.
 
-## 开发
+## Development
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm run test        # vitest，68 个单元测试
-npm run smoke       # 加载真实 main.js，模拟 Ctrl+V 全链路
-npm run verify      # 以上全部 + 生产构建
+npm run test        # vitest, 68 unit tests
+npm run smoke       # loads the real main.js and simulates a full Ctrl+V paste
+npm run verify      # all of the above + production build
 ```
 
-代码分层：
+Code layout:
 
-- `main.ts` —— 控制器：注册事件、设置页、把 Obsidian API 适配成 `VaultPort`。
-- `src/paths.ts` —— 纯函数：路径解析、唯一命名、链接生成（无 Obsidian 依赖，易测）。
-- `src/saver.ts` —— 服务层：目录创建、写入、链接拼装，只依赖 `VaultPort` 接口。
-- `src/settings.ts` —— 设置契约与容错校验。
+- `main.ts` — controller: event registration, settings tab, adapts the Obsidian API to `VaultPort`.
+- `src/paths.ts` — pure path resolution, unique naming, link building (no Obsidian dependency, easy to test).
+- `src/saver.ts` — service layer: folder creation, writing, link assembly; depends only on the `VaultPort` interface.
+- `src/settings.ts` — settings contract and defensive normalization.
+- `src/i18n.ts` — en/zh dictionaries, `t()`, locale detection.
 
 ## License
 
