@@ -1,6 +1,6 @@
 {
   "name": "@njuptlzf/obsidian-load-image",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Obsidian plugin: paste images into a configurable folder (note-relative, relative path, or vault-absolute) with automatic folder creation.",
   "main": "main.js",
   "keywords": [
@@ -38,17 +38,21 @@
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint main.ts src",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs",
-    "verify": "npm run typecheck && npm run test && npm run build && npm run smoke",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run smoke",
     "prepublishOnly": "npm run verify"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
     "esbuild": "^0.20.2",
+    "eslint": "^9.39.4",
+    "eslint-plugin-obsidianmd": "^0.5.1",
     "obsidian": "^1.5.7",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.72.2",
     "vitest": "^1.6.0"
   }
 }

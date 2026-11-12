@@ -99,7 +99,7 @@ npm run verify      # 以上全部 + 生产构建
 - `src/paths.ts` —— 纯函数：路径解析、唯一命名、链接生成（无 Obsidian 依赖，易测）。
 - `src/saver.ts` —— 服务层：目录创建、写入、链接拼装，只依赖 `VaultPort` 接口。
 - `src/settings.ts` —— 设置契约与容错校验。
-- `src/i18n.ts` —— 中英文字典、`t()`、语言检测。
+- `src/i18n.ts` —— 中英文字典、`t()`、语言检测（语言由插件传入）。
 
 ## 发版
 
@@ -109,7 +109,9 @@ npm run verify      # 以上全部 + 生产构建
 git tag 1.1.2 && git push origin 1.1.2
 ```
 
-不要带 `v` 前缀。Obsidian 是拿 release tag 与 `manifest.json` 里的版本号做字面匹配的，写成 `v1.1.2` 会被判定为「没有发布该版本的 release」。CI 会自动构建并挂上 `main.js` / `manifest.json` / `styles.css` / `versions.json`；若 tag 与版本号不一致，流程会直接失败。
+不要带 `v` 前缀。Obsidian 是拿 release tag 与 `manifest.json` 里的版本号做字面匹配的，写成 `v1.1.2` 会被判定为「没有发布该版本的 release」。CI 会自动构建并挂上 `main.js` / `manifest.json` / `styles.css`，同时为这些产物生成构建来源签名（attestation）；若 tag 与版本号不一致，流程会直接失败。
+
+`versions.json` 只提交到仓库，**不**挂到 release 上：Obsidian 是从仓库读它的，插件审查也会把 release 里的多余文件判为不合格。
 
 ## License
 

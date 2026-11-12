@@ -8,6 +8,9 @@ on:
 
 permissions:
   contents: write
+  # Needed to sign the release assets with a build provenance attestation.
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -37,12 +40,25 @@ jobs:
       # typecheck + 68 unit tests + production build + runtime smoke test
       - run: npm run verify
 
+      # Cryptographically prove that the released assets were built from this
+      # repository — the Obsidian plugin review asks for it.
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          # Only the files Obsidian downloads from a release. versions.json
+          # stays in the repository (Obsidian reads it from there), attaching
+          # it to the release makes the plugin review report an unsupported
+          # extra file.
           files: |
             main.js
             manifest.json
             styles.css
-            versions.json

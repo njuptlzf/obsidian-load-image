@@ -8,6 +8,8 @@ import {
   PluginSettingTab,
   Setting,
   TFolder,
+  getLanguage,
+  type SettingDefinitionItem,
 } from "obsidian";
 
 import {
@@ -39,7 +41,7 @@ export default class LoadImagePlugin extends Plugin {
 
   override async onload(): Promise<void> {
     await this.loadSettings();
-    setLocale(this.settings.language);
+    setLocale(this.settings.language, this.getAppLanguage());
     this.addSettingTab(new LoadImageSettingTab(this.app, this));
 
     // Only image pastes are intercepted; text / file pastes stay untouched.
@@ -47,6 +49,9 @@ export default class LoadImagePlugin extends Plugin {
       this.app.workspace.on(
         "editor-paste",
         (evt: ClipboardEvent, editor: Editor, info: MarkdownView | MarkdownFileInfo) => {
+          // Another plugin may have handled the paste already.
+          if (evt.defaultPrevented) return;
+
           const files = extractImageFiles(evt);
           if (files.length === 0) return;
 
@@ -63,6 +68,23 @@ export default class LoadImagePlugin extends Plugin {
         void this.pasteFromClipboard(editor, ctx);
       },
     });
+  }
+
+  /**
+   * The Obsidian UI language, used when the plugin language follows the app.
+   *
+   * `getLanguage()` exists since Obsidian 1.8.7; on older versions the
+   * browser locale is used instead.
+   */
+  getAppLanguage(): string {
+    try {
+      if (typeof getLanguage === "function") {
+        return getLanguage();
+      }
+    } catch {
+      // The API is not available on this Obsidian version.
+    }
+    return "";
   }
 
   /** Re-render command palette labels after a language change. */
@@ -201,6 +223,19 @@ function extractImageFiles(evt: ClipboardEvent): File[] {
     .filter((file): file is File => file !== null);
 }
 
+/**
+ * The settings tab.
+ *
+ * Two rendering paths that have to stay in sync:
+ *
+ *  - `getSettingDefinitions()` — the declarative API of Obsidian 1.13 and up.
+ *    Obsidian renders it, persists the values and indexes the settings for
+ *    the global settings search.
+ *  - `display()` — the imperative fallback for Obsidian below 1.13.
+ *
+ * `refreshSettings()` picks whichever fits the running version: `update()`
+ * re-reads the definitions on 1.13+, older versions re-render imperatively.
+ */
 class LoadImageSettingTab extends PluginSettingTab {
   private readonly plugin: LoadImagePlugin;
   private previewEl: HTMLElement | null = null;
@@ -210,12 +245,135 @@ class LoadImageSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  // ------------------------------------------------------------- declarative
+
+  /** Obsidian 1.13+ reads the settings from here. */
+  override getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        type: "group",
+        heading: t("settings.heading"),
+        items: [
+          {
+            name: t("settings.language.name"),
+            desc: t("settings.language.desc"),
+            // A plain control cannot re-render the tab, and switching the
+            // language changes every label — so this row keeps its handler.
+            render: (setting) => this.renderLanguageSetting(setting),
+          },
+          {
+            name: t("settings.folder.name"),
+            // The folder row carries the live path preview, so it is drawn
+            // by hand as well.
+            render: (setting) => this.renderFolderSetting(setting),
+          },
+          {
+            name: t("settings.link.name"),
+            desc: t("settings.link.desc"),
+            control: {
+              type: "dropdown",
+              key: "linkStyle",
+              options: {
+                markdown: t("settings.link.markdown"),
+                wiki: t("settings.link.wiki"),
+              },
+            },
+          },
+          {
+            name: t("settings.nameTemplate.name"),
+            desc: t("settings.nameTemplate.desc"),
+            control: {
+              type: "text",
+              key: "fileNameTemplate",
+              placeholder: t("settings.nameTemplate.placeholder"),
+            },
+          },
+          {
+            name: t("settings.notice.name"),
+            desc: t("settings.notice.desc"),
+            control: { type: "toggle", key: "showNotice" },
+          },
+        ],
+      },
+    ];
+  }
+
+  /** Language picker. Switching it re-renders the whole tab. */
+  private renderLanguageSetting(setting: Setting): void {
+    setting.addDropdown((dropdown) =>
+      dropdown
+        .addOption("auto", t("settings.language.auto"))
+        .addOption("en", t("settings.language.en"))
+        .addOption("zh", t("settings.language.zh"))
+        .setValue(this.plugin.settings.language)
+        .onChange(async (value) => {
+          this.plugin.settings.language = value as LanguageSetting;
+          await this.plugin.saveSettings();
+          setLocale(
+            this.plugin.settings.language,
+            this.plugin.getAppLanguage()
+          );
+          this.plugin.refreshCommandNames();
+          this.refreshSettings();
+        })
+    );
+  }
+
+  /** Folder picker with the live path preview below it. */
+  private renderFolderSetting(setting: Setting): void {
+    // The three rules are separate lines, so they are built as a fragment.
+    setting.setDesc(
+      createFragment((fragment) => {
+        fragment.createDiv({ text: t("settings.folder.rule1") });
+        fragment.createDiv({ text: t("settings.folder.rule2") });
+        fragment.createDiv({ text: t("settings.folder.rule3") });
+        fragment.createDiv({
+          cls: "load-image-desc-note",
+          text: t("settings.folder.note"),
+        });
+      })
+    );
+
+    setting.addText((text) => {
+      text
+        .setPlaceholder("./assets")
+        .setValue(this.plugin.settings.imageFolder)
+        .onChange(async (value) => {
+          this.plugin.settings.imageFolder = value;
+          await this.plugin.saveSettings();
+          this.updatePreview();
+        });
+      text.inputEl.addClass("load-image-folder-input");
+    });
+
+    setting.addExtraButton((button) => {
+      button
+        .setIcon("rotate-ccw")
+        .setTooltip(t("settings.folder.reset"))
+        .onClick(async () => {
+          this.plugin.settings.imageFolder = DEFAULT_SETTINGS.imageFolder;
+          await this.plugin.saveSettings();
+          this.refreshSettings();
+        });
+    });
+
+    this.previewEl = setting.descEl.createDiv({ cls: "load-image-preview" });
+    this.updatePreview();
+  }
+
+  // -------------------------------------------------------------- imperative
+
+  /** Obsidian below 1.13 renders the tab itself. */
   override display(): void {
+    this.renderSettings();
+  }
+
+  /** The imperative settings page, used by Obsidian below 1.13. */
+  private renderSettings(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.addClass("load-image-settings");
 
-    containerEl.createEl("h2", { text: t("settings.heading") });
+    new Setting(containerEl).setName(t("settings.heading")).setHeading();
 
     // Language
     new Setting(containerEl)
@@ -230,9 +388,12 @@ class LoadImageSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.language = value as LanguageSetting;
             await this.plugin.saveSettings();
-            setLocale(this.plugin.settings.language);
+            setLocale(
+              this.plugin.settings.language,
+              this.plugin.getAppLanguage()
+            );
             this.plugin.refreshCommandNames();
-            this.display();
+            this.refreshSettings();
           })
       );
 
@@ -256,17 +417,17 @@ class LoadImageSettingTab extends PluginSettingTab {
           .onClick(async () => {
             this.plugin.settings.imageFolder = DEFAULT_SETTINGS.imageFolder;
             await this.plugin.saveSettings();
-            this.display();
+            this.refreshSettings();
           });
       });
 
     // 三种写法分条描述，避免挤在一行看不清。
     const folderDesc = folderSetting.descEl;
     folderDesc.empty();
-    folderDesc.createEl("div", { text: t("settings.folder.rule1") });
-    folderDesc.createEl("div", { text: t("settings.folder.rule2") });
-    folderDesc.createEl("div", { text: t("settings.folder.rule3") });
-    folderDesc.createEl("div", {
+    folderDesc.createDiv({ text: t("settings.folder.rule1") });
+    folderDesc.createDiv({ text: t("settings.folder.rule2") });
+    folderDesc.createDiv({ text: t("settings.folder.rule3") });
+    folderDesc.createDiv({
       cls: "load-image-desc-note",
       text: t("settings.folder.note"),
     });
@@ -316,6 +477,23 @@ class LoadImageSettingTab extends PluginSettingTab {
     this.updatePreview();
   }
 
+  // ----------------------------------------------------------------- shared
+
+  /**
+   * Re-render the settings tab.
+   *
+   * `update()` is the 1.13+ refresh API — it re-reads the definitions.
+   * Older Obsidian has no `update()`, so the imperative page is redrawn.
+   */
+  private refreshSettings(): void {
+    const declarative = this as unknown as { update?: () => void };
+    if (typeof declarative.update === "function") {
+      declarative.update.call(this);
+      return;
+    }
+    this.renderSettings();
+  }
+
   private updatePreview(): void {
     if (!this.previewEl) return;
 
@@ -330,7 +508,7 @@ class LoadImageSettingTab extends PluginSettingTab {
         this.plugin.settings
       );
 
-      this.previewEl.createEl("div", {
+      this.previewEl.createDiv({
         cls: "load-image-preview-label",
         text:
           base === "note"
@@ -339,13 +517,13 @@ class LoadImageSettingTab extends PluginSettingTab {
       });
       this.previewEl.createEl("code", { text: display });
       if (base === "note") {
-        this.previewEl.createEl("div", {
+        this.previewEl.createDiv({
           cls: "load-image-preview-hint",
           text: t("preview.noteHint"),
         });
       }
     } catch (error) {
-      this.previewEl.createEl("div", {
+      this.previewEl.createDiv({
         cls: "load-image-preview-error",
         text: error instanceof Error ? error.message : t("preview.invalid"),
       });

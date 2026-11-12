@@ -7,9 +7,9 @@
  * force English or Chinese in settings. Older Obsidian versions without
  * `getLanguage()` fall back to the browser / Electron locale.
  *
- * NOTE: `obsidian` is required lazily inside `detectLocale()` (never at module
- * load) so the pure path / saver modules that import this file stay testable in
- * plain Node without pulling in Obsidian.
+ * NOTE: this module has no `obsidian` import on purpose — the pure path and
+ * saver modules that use `t()` stay testable in plain Node. The app language
+ * is read by the plugin and handed to `setLocale()`.
  */
 
 export type Locale = "en" | "zh";
@@ -121,34 +121,27 @@ const dict: Record<Locale, Record<string, string>> = { en, zh };
 
 let current: Locale = "en";
 
-/** Detect the locale from the running environment. */
-export function detectLocale(): Locale {
-  let lang = "";
-  try {
-    // Available since Obsidian 1.8.7; lazy require keeps pure modules node-safe.
-    const obsidian = require("obsidian");
-    if (obsidian && typeof obsidian.getLanguage === "function") {
-      lang = obsidian.getLanguage();
-    }
-  } catch {
-    // obsidian module unavailable (older version or non-app environment)
-  }
-  if (!lang && typeof navigator !== "undefined") {
-    lang = navigator.language || "";
-  }
-  if (!lang && typeof window !== "undefined") {
-    try {
-      lang = window.localStorage?.getItem("language") || "";
-    } catch {
-      // ignore storage access errors
-    }
-  }
-  return lang.toLowerCase().startsWith("zh") ? "zh" : "en";
+/**
+ * Detect the locale from the app language.
+ *
+ * `appLanguage` is the value of Obsidian's `getLanguage()`; when it is empty
+ * (older Obsidian without that API) the browser locale is used instead.
+ */
+export function detectLocale(appLanguage?: string): Locale {
+  const lang = (appLanguage ?? "").trim();
+  if (lang) return lang.toLowerCase().startsWith("zh") ? "zh" : "en";
+
+  const fallback =
+    typeof navigator !== "undefined" ? navigator.language || "" : "";
+  return fallback.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 
 /** Resolve the active locale from the user's language preference. */
-export function setLocale(pref: LanguageSetting): void {
-  current = pref === "auto" ? detectLocale() : pref;
+export function setLocale(
+  pref: LanguageSetting,
+  appLanguage?: string
+): void {
+  current = pref === "auto" ? detectLocale(appLanguage) : pref;
 }
 
 export function getLocale(): Locale {

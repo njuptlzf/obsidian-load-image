@@ -107,6 +107,9 @@ class Setting {
   setDesc() {
     return this;
   }
+  setHeading() {
+    return this;
+  }
   addText() {
     return this;
   }
@@ -130,6 +133,7 @@ const obsidianStub = {
   MarkdownFileInfo: class {},
   TFile: class {},
   TFolder: FakeFolder,
+  getLanguage: () => "en",
 };
 
 const originalLoad = Module._load;
@@ -193,6 +197,28 @@ console.log("onload");
 check("registers one editor-paste listener", plugin._events.length === 1, `got ${plugin._events.length}`);
 check("registers the manual paste command", plugin._commands.length === 1);
 check("registers a settings tab", plugin._tabs.length === 1);
+
+// --- declarative settings (Obsidian 1.13+) ---------------------------------
+const settingsTab = plugin._tabs[0];
+const definitions = settingsTab.getSettingDefinitions();
+check("settings tab exposes declarative definitions", Array.isArray(definitions) && definitions.length > 0);
+const group = definitions[0];
+check("definitions are grouped under a heading", group?.type === "group" && typeof group.heading === "string");
+const items = group?.items ?? [];
+check("defines all five settings", items.length === 5, `got ${items.length}`);
+const controlKeys = items
+  .map((item) => item.control?.key)
+  .filter((key) => typeof key === "string");
+check(
+  "control keys match the settings object",
+  ["linkStyle", "fileNameTemplate", "showNotice"].every((key) => controlKeys.includes(key)),
+  controlKeys.join(",")
+);
+check(
+  "every control key exists in the settings",
+  controlKeys.every((key) => key in plugin.settings),
+  controlKeys.join(",")
+);
 
 const pasteHandler = plugin._events[0].cb;
 
@@ -260,6 +286,16 @@ pasteHandler(evt, editor, { file: { path: "notes/daily/2026-11-12.md" } });
 
 console.log("\nnon-image paste:");
 check("does not intercept text/files", evt.defaultPrevented === false);
+
+// --- a paste another plugin handled already is left alone ------------------
+inserted.length = 0;
+vault.writes.length = 0;
+evt = makePasteEvent();
+evt.defaultPrevented = true; // another plugin already took the paste
+pasteHandler(evt, editor, { file: { path: "notes/daily/2026-11-12.md" } });
+
+console.log("\nalready handled paste:");
+check("does not touch an already handled paste", vault.writes.length === 0 && inserted.length === 0);
 
 // --- wiki style ------------------------------------------------------------
 plugin.settings.imageFolder = "./assets";

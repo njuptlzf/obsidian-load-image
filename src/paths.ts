@@ -121,10 +121,24 @@ export function resolveImageFolder(
   return { folder: normalized, base: "vault" };
 }
 
+/** Characters that are illegal in file names on Windows / macOS / Linux. */
+const ILLEGAL_FILE_NAME_CHARS = /[\\/:*?"<>|]/g;
+
+/**
+ * Replace the control characters (U+0000–U+001F) that are illegal in file
+ * names. They are matched by code point instead of by a character range, so
+ * no control character ever shows up in a regular expression.
+ */
+function replaceControlChars(name: string): string {
+  return Array.from(name)
+    .map((char) => ((char.codePointAt(0) ?? 0) <= 0x1f ? "-" : char))
+    .join("");
+}
+
 /** Strip characters that are illegal in file names on Windows / macOS / Linux. */
 export function sanitizeFileName(name: string): string {
-  const cleaned = name
-    .replace(/[\\/:*?"<>|\u0000-\u001F]/g, "-")
+  const cleaned = replaceControlChars(name)
+    .replace(ILLEGAL_FILE_NAME_CHARS, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^[.\-\s]+/, "")

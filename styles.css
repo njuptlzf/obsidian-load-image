@@ -1,10 +1,14 @@
-.load-image-settings .load-image-folder-input {
+/* The settings page is rendered by Obsidian itself (declarative settings on
+   1.13+, the imperative fallback below that), so these rules are scoped by
+   the plugin-specific class names rather than by a container class. */
+
+.load-image-folder-input {
   width: 100%;
   min-width: 260px;
   font-family: var(--font-monospace);
 }
 
-.load-image-settings .load-image-preview {
+.load-image-preview {
   margin: 0.25rem 0 1.75rem;
   padding: 0.6rem 0.8rem;
   border: 1px solid var(--background-modifier-border);
@@ -13,28 +17,28 @@
   font-size: var(--font-ui-smaller);
 }
 
-.load-image-settings .load-image-preview-label {
+.load-image-preview-label {
   color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
 
-.load-image-settings .load-image-preview code {
+.load-image-preview code {
   font-family: var(--font-monospace);
   color: var(--text-accent);
   background-color: transparent;
   word-break: break-all;
 }
 
-.load-image-settings .load-image-preview-hint {
+.load-image-preview-hint {
   margin-top: 0.3rem;
   color: var(--text-faint);
 }
 
-.load-image-settings .load-image-preview-error {
+.load-image-preview-error {
   color: var(--text-error);
 }
 
-.load-image-settings .load-image-desc-note {
+.load-image-desc-note {
   margin-top: 0.35rem;
   color: var(--text-muted);
 }

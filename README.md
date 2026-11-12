@@ -101,7 +101,7 @@ Code layout:
 - `src/paths.ts` — pure path resolution, unique naming, link building (no Obsidian dependency, easy to test).
 - `src/saver.ts` — service layer: folder creation, writing, link assembly; depends only on the `VaultPort` interface.
 - `src/settings.ts` — settings contract and defensive normalization.
-- `src/i18n.ts` — en/zh dictionaries, `t()`, locale detection.
+- `src/i18n.ts` — en/zh dictionaries, `t()`, locale detection (the app language is passed in by the plugin).
 
 ## Releasing
 
@@ -111,7 +111,9 @@ Bump the version in `manifest.json`, `versions.json` and `package.json`, then pu
 git tag 1.1.2 && git push origin 1.1.2
 ```
 
-No `v` prefix. Obsidian matches the release tag against `manifest.json` literally, so `v1.1.2` is reported as *"no GitHub release with that version has been published yet"*. The release workflow builds the plugin, attaches `main.js` / `manifest.json` / `styles.css` / `versions.json`, and fails early when the tag and the manifest version diverge.
+No `v` prefix. Obsidian matches the release tag against `manifest.json` literally, so `v1.1.2` is reported as *"no GitHub release with that version has been published yet"*. The release workflow builds the plugin, attaches `main.js` / `manifest.json` / `styles.css`, signs them with a build provenance attestation, and fails early when the tag and the manifest version diverge.
+
+`versions.json` is committed to the repository but **not** attached to the release: Obsidian reads it from the repository, and the plugin review rejects a release that carries extra files.
 
 ## License
 
